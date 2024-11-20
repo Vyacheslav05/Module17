@@ -36,35 +36,63 @@ async def task_by_user(db: Annotated[Session, Depends(get_db)], user_id: int):
         )
     subcategories = db.scalars(select(User).where(User.parent_id == user.id)).all()
     users_and_subcategories = [user.id] + [i.id for i in subcategories]
-    user_category = db.scalars(
-        select(User).where(Product.user_id.in_(users_and_subcategories), User.is_active == True,
+    user_task = db.scalars(
+        select(User).where(User.user_id.in_(users_and_subtasks), User.is_active == True,
                               User.stock > 0)).all()
-    return users_category
+    return users_task
 
-
-@router.post("/create")
-async def create_user():
-    pass
 @router.post('/create')
-async def create_user(db: Annotated[Session, Depends(get_db)], create_product: CreateProduct):
-    db.execute(insert(Product).values(username=create_user.username,
+async def create_user(db: Annotated[Session, Depends(get_db)], create_user: CreateUser):
+    db.execute(insert(User).values(id=create_user.id,
+                                      username=create_user.username,
                                       firstname=create_user.firstname,
-                                      price=create_product.price,
-                                      image_url=create_product.image_url,
-                                      stock=create_product.stock,
-                                      category_id=create_product.category,
-                                      rating=0.0,
-                                      slug=slugify(create_product.name)))
+                                      age=create_user.age,
+                                      lastname=create_user.lastname,
+                                      slug=slugify(create_user.name
+                                      )))
     db.commit()
     return {
         'status_code': status.HTTP_201_CREATED,
         'transaction': 'Successful'
     }
 
-@router.put("/update")
-async def update_user():
-    pass
+@router.put('/update')
+async def update_user(db: Annotated[Session, Depends(get_db)], user_slug: str,
+                         update_user_model: CreateUser):
+    user_update = db.scalar(select(User).where(User.slug == user_slug))
+    if user_update is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='There is no user found'
+        )
+
+    db.execute(update(User).where(User.slug == user_slug)
+               .values(id=create_user.id,
+                        username=create_user.username,
+                        firstname=create_user.firstname,
+                        age=create_user.age,
+                        lastname=create_user.lastname,
+                        slug=slugify(create_user.name)))
+    db.commit()
+    return {
+        'status_code': status.HTTP_200_OK,
+        'transaction': 'User update is successful'
+    }
 
 @router.delete("/delete")
 async def delete_user():
     pass
+@router.delete('/delete')
+async def delete_user(db: Annotated[Session, Depends(get_db)], user_id: int):
+    user_delete = db.scalar(select(User).where(User.id == product_id))
+    if user_delete is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='There is no user found'
+        )
+    db.execute(update(User).where(User.id == user_id).values(is_active=False))
+    db.commit()
+    return {
+        'status_code': status.HTTP_200_OK,
+        'transaction': 'User delete is successful'
+    }
